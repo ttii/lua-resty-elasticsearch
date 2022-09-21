@@ -154,6 +154,18 @@ function _M.search(self, condition)
 end
 
 
+-- mapping
+function _M.mapping(self, properties)
 
+    local json_data = cjson.encode(properties)
+
+    local ok, err = self:call('_mapping',{
+        method = "POST",
+        body = json_data,
+        headers = {["Content-Type"] = "application/json",}
+    })
+    
+    return ok, err
+end
 return _M
 
