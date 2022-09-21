@@ -89,14 +89,62 @@ end
 
 
 -- create index
+--[=[
+       local mapping_properties = {
+        -- 哪些字段需要中文全文索引的,需要在这里加
+        --创建索引后,需要设置中文搜索引擎的mapping参数
+        --[[
+            其中分词有两种设置方法，ik_max_word和ik_smart，他们的区别如下，可以根据自己项目的情况进行选择：
+            ik_max_word: 会将文本做最细粒度的拆分，比如会将“中华人民共和国国歌”拆分为“中华人民共和国,中华人民,中华,华人,人民共和国,人民,人,民,共和国,共和,和,国国,国歌”，会穷尽各种可能的组合；
+            ik_smart: 会做最粗粒度的拆分，比如会将“中华人民共和国国歌”拆分为“中华人民共和国,国歌”。
+        ]]
+        sku_name = {
+            type = "text",
+            analyzer = "ik_smart",
+            search_analyzer = "ik_smart"
+        },
+        purpose = {
+            type = "short"
+        },
+        btype = {
+            type = "short"
+        },
+        sko_uuid = {
+            type = "keyword",
+            ignore_above = 16 --长于这个长度的字符串不会被索引
+        },
+        memo = {
+            type = "object",
+            enabled = "false" --这种不做索引,只是数据在里面,从结果中获得得了
+        }
+
+    }
+]=]
 function  _M.create_index(self)
+    local ok, err
+    -- 如果带有mapping配置,那么走mapping创建,做静态的mapping配置,否则直接创建并走动态的mapping配置
+    if mapping_properties then
+         -- 创建mapping,参数结构外围需要添加mappings关键字
+        local mapjson = {
+            mappings = {
+                properties = mapping_properties
+            }
+        }
 
-    --local json_data = cjson.encode(data)
+        local body_str = cjson.encode(mapjson)
+        print(body_str)
+        ok, err = self:call(nil,{
+            method = "PUT",
+            body = body_str,
+            headers = {["Content-Type"] = "application/json",}
+        })
 
-    local ok, err = self:call(nil, {
-        method = "PUT",
-        headers = {["Content-Type"] = "application/json",}
-    })
+    else
+        ok, err = self:call(nil, {
+            method = "PUT",
+            headers = {["Content-Type"] = "application/json",}
+        })
+    end
 
     return ok, err
 end
@@ -154,10 +202,46 @@ function _M.search(self, condition)
 end
 
 
--- mapping
-function _M.mapping(self, properties)
 
-    local json_data = cjson.encode(properties)
+-- add mapping properties
+--[=[
+       local properties = {
+        -- 哪些字段需要中文全文索引的,需要在这里加
+        --创建索引后,需要设置中文搜索引擎的mapping参数
+        --[[
+            其中分词有两种设置方法，ik_max_word和ik_smart，他们的区别如下，可以根据自己项目的情况进行选择：
+            ik_max_word: 会将文本做最细粒度的拆分，比如会将“中华人民共和国国歌”拆分为“中华人民共和国,中华人民,中华,华人,人民共和国,人民,人,民,共和国,共和,和,国国,国歌”，会穷尽各种可能的组合；
+            ik_smart: 会做最粗粒度的拆分，比如会将“中华人民共和国国歌”拆分为“中华人民共和国,国歌”。
+        ]]
+        sku_name = {
+            type = "text",
+            analyzer = "ik_smart",
+            search_analyzer = "ik_smart"
+        },
+        purpose = {
+            type = "short"
+        },
+        btype = {
+            type = "short"
+        },
+        sko_uuid = {
+            type = "keyword",
+            ignore_above = 16 --长于这个长度的字符串不会被索引
+        },
+        memo = {
+            type = "object",
+            enabled = "false" --这种不做索引,只是数据在里面,从结果中获得得了
+        }
+
+    }
+]=]
+function _M.mapping_add(self, properties)
+
+    -- 添加新字段的mapping,外围是properties关键字
+    local propjson = {
+        properties = properties
+    }
+    local json_data = cjson.encode(propjson)
 
     local ok, err = self:call('_mapping',{
         method = "POST",
@@ -165,6 +249,17 @@ function _M.mapping(self, properties)
         headers = {["Content-Type"] = "application/json",}
     })
     
+    return ok, err
+end
+
+-- get mapping
+function _M.mapping_get(self)
+
+    local ok, err = self:call('_mapping',{
+        method = "GET",
+        headers = {["Content-Type"] = "application/json",}
+    })
+   
     return ok, err
 end
 return _M
