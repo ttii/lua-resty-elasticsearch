@@ -87,6 +87,19 @@ function  _M.call(self, etype, http_req)
     return data
 end
 
+-- get index
+function  _M.get_index(self)
+
+    --local json_data = cjson.encode(data)
+
+    local ok, err = self:call(nil, {
+        method = "GET",
+        headers = {["Content-Type"] = "application/json",}
+    })
+
+
+    return ok, err
+end
 
 -- create index
 --[=[
@@ -120,7 +133,7 @@ end
 
     }
 ]=]
-function  _M.create_index(self)
+function _M.create_index(self, mapping_properties)
     local ok, err
     -- 如果带有mapping配置,那么走mapping创建,做静态的mapping配置,否则直接创建并走动态的mapping配置
     if mapping_properties then
@@ -155,7 +168,9 @@ function _M.drop_index(self)
     return ok, err
 end
 
--- 插入和更新都用这个接口 , insert or update doc to index
+完全的插入和更新都用这个接口 , insert or update doc to index
+意思就是更新的话,整个data会把原有的data替换掉,没有的字段就删掉了,全新的替换
+--*如果需要修改某个字段内容,请使用update接口,单独更新某个字段内容
 function _M.insert_update(self, id, data)
 
     local json_data = cjson.encode(data)
@@ -166,6 +181,23 @@ function _M.insert_update(self, id, data)
         headers = { ["Content-Type"] = "application/json", }
     })
 
+    return ok, err
+
+--[[
+--*单独更新doc的某个字段的内容,data不会覆盖整个文档,只会修改data中涉及到的字段内容
+data = { "tag_list": [ "噜啦啦" ]}
+]]
+function _M.update(self, id, data)
+    local docjson = {
+        doc = data
+    }
+    local json_data = cjson.encode(docjson)
+
+    local ok, err = self:call('_update/'..id, {
+        method = "POST",
+        body = json_data,
+        headers = { ["Content-Type"] = "application/json", }
+    })
     return ok, err
 end
 
